@@ -1,4 +1,4 @@
-# toe
+# toe stub
 
 #### trip-free test stubs
 
