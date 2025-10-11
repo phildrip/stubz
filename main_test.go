@@ -27,14 +27,14 @@ func TestGenerateStub(t *testing.T) {
 			InputFile:     filepath.Join("testdata", "input", "simple"),
 			InterfaceName: "MyInterface",
 			GoldenFile:    filepath.Join("testdata", "golden", "stubs", "stub_myinterface.go"), // Default output path
-			Flags:         []string{},                                                             // No flags for default
+			Flags:         []string{},                                                          // No flags for default
 		},
 		{
 			Name:          "generic_default_output",
 			InputFile:     filepath.Join("testdata", "input", "generic"),
 			InterfaceName: "GenericInterface",
 			GoldenFile:    filepath.Join("testdata", "golden", "stubs", "stub_genericinterface.go"), // Default output path
-			Flags:         []string{},                                                              // No flags for default
+			Flags:         []string{},                                                               // No flags for default
 		},
 
 		{
@@ -51,7 +51,7 @@ func TestGenerateStub(t *testing.T) {
 			// Determine the expected output path that `run` will use
 			// This will be relative to the test's TempDir
 			generatedStubDir := "stubs" // Default for most cases
-			
+
 			// If a custom stub-dir is specified in flags, use that for the generated output path.
 			// This logic needs to mirror how `run` determines the actual output directory.
 			for i, flag := range tc.Flags {
@@ -63,7 +63,7 @@ func TestGenerateStub(t *testing.T) {
 
 			outputFilename := fmt.Sprintf("stub_%s.go", strings.ToLower(tc.InterfaceName))
 
-			// Create a temporary output file path. 
+			// Create a temporary output file path.
 			testTempDir := t.TempDir()
 			finalOutputDir := filepath.Join(testTempDir, generatedStubDir) // Use generatedStubDir here
 			if err := os.MkdirAll(finalOutputDir, 0755); err != nil {
@@ -109,9 +109,9 @@ func TestGenerateStub(t *testing.T) {
 
 			// Verify generated code compiles
 			cmd := exec.Command("go", "build")
-			cmd.Dir = "." // Run build from the project root (assuming tests run from project root)
+			cmd.Dir = "."                               // Run build from the project root (assuming tests run from project root)
 			cmd.Args = append(cmd.Args, outputFilePath) // Build the generated file
-			
+
 			var buildStderr bytes.Buffer
 			cmd.Stderr = &buildStderr
 			if err := cmd.Run(); err != nil {
@@ -121,9 +121,40 @@ func TestGenerateStub(t *testing.T) {
 	}
 }
 
-// generateDiff is a helper to produce a diff string (simplified for demonstration)
-func generateDiff(a, b []byte) string {
-	// For simplicity, we'll just show both versions.
-	// TODO: Consider using a proper diffing library like github.com/sergi/go-diff for better diff output.
-	return fmt.Sprintf("--- Generated\n+++ Golden\n%s\n%s", string(a), string(b))
+// generateDiff produces a simple line-by-line diff showing differences between generated and golden files
+func generateDiff(generated, golden []byte) string {
+	goldenLines := strings.Split(string(golden), "\n")
+	generatedLines := strings.Split(string(generated), "\n")
+	
+	var result strings.Builder
+	result.WriteString("--- Golden (expected)\n")
+	result.WriteString("+++ Generated (actual)\n\n")
+	
+	maxLines := len(goldenLines)
+	if len(generatedLines) > maxLines {
+		maxLines = len(generatedLines)
+	}
+	
+	// Show line-by-line comparison
+	for i := 0; i < maxLines; i++ {
+		var goldenLine, generatedLine string
+		if i < len(goldenLines) {
+			goldenLine = goldenLines[i]
+		}
+		if i < len(generatedLines) {
+			generatedLine = generatedLines[i]
+		}
+		
+		if goldenLine != generatedLine {
+			lineNum := i + 1
+			if i < len(goldenLines) {
+				result.WriteString(fmt.Sprintf("- Line %d: %s\n", lineNum, goldenLine))
+			}
+			if i < len(generatedLines) {
+				result.WriteString(fmt.Sprintf("+ Line %d: %s\n", lineNum, generatedLine))
+			}
+		}
+	}
+	
+	return result.String()
 }
