@@ -36,7 +36,7 @@ func run(stdout, stderr io.Writer, args []string) int {
 
 	if fs.NArg() != 2 {
 		fmt.Fprintf(stderr,
-			"Usage: %s [-test-package] [-stub-dir <dir>] [-o <output.go>] <input_directory> <interface>\n",
+			"Usage: %s [-stub-dir <dir>] [-o <output.go>] <input_directory> <interface>\n",
 			args[0])
 		return 1
 	}
@@ -64,8 +64,6 @@ func run(stdout, stderr io.Writer, args []string) int {
 		fmt.Fprintf(stderr, "Error creating output directory for %s: %v\n", outputFile, err)
 		return 1
 	}
-
-
 
 	var opts = &options.StubOptions{WithLocking: true}
 
