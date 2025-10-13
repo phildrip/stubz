@@ -7,7 +7,7 @@
 ## Features
 
 - Generates stub implementations for any Go interface, **including those with generic type parameters**.
-- **Configurable Concurrency Safety**: Stubs can be configured to use a `sync.Mutex`, which is useful for testing concurrent code and helping to detect race conditions. This behavior is managed at runtime for each stub instance via an `options.StubOptions` struct.
+- **Configurable Concurrency Safety**: Stubs can be configured to use a `sync.Mutex`, which is useful for testing concurrent code and helping to detect race conditions. This behaviour is managed at stub creation time.
 - **Call Recording**: All method calls are recorded, allowing you to assert how many times a method was called and with which parameters.
 - **Flexible Return Values**: You can set up stubbed methods to return specific fixed values or to execute a custom lambda function for more complex logic.
 
@@ -45,7 +45,7 @@ toe [flags] <input_directory> <interface>
 
 `toe` generates a struct (e.g., `StubCalculator`) that implements your interface, along with a constructor function (e.g., `NewStubCalculator`).
 
--   **Constructor**: A `NewStub<InterfaceName>` function is generated which allows you to instantiate the stub with configurable options. For example: `NewStubCalculator(opts *options.StubOptions) *StubCalculator`.
+-   **Constructor**: A `NewStub<InterfaceName>` function is generated which allows you to instantiate the stub with configurable options. For example: `NewStubCalculator(opts StubCalculatorOptions) *StubCalculator`.
 -   **Internal Fields**: The generated stub struct includes:
     -   `mu sync.Mutex`: (Always present, but only used if `opts.WithLocking` is true in the constructor).
     -   `isLocked bool`: A flag indicating if the mutex should be used for this instance.
@@ -85,11 +85,11 @@ func main() {
 	fmt.Println("Demonstrating Calculator Stub:")
 
 	// Instantiate the stub, enabling locking for this instance
-	stub := stubs.NewStubCalculator(&stubs.StubOptions{WithLocking: true})
+	stub := stubs.NewStubCalculator(stubs.StubCalculatorOptions{WithLocking: true})
 
 	// --- Using fixed return values ---
 	fmt.Println("\n--- Testing Subtract with fixed return values ---")
-	
+
 	// Set a single return value for Subtract.
 		stub.SubtractReturns = stubs.StubCalculatorSubtractReturns{Int0: 100, Error1: nil}
 	result, err := stub.Subtract(20, 10)
