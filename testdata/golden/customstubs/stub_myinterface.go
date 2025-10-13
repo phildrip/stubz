@@ -2,11 +2,11 @@
 
 package customstubs
 
-import (
-	"github.com/phildrip/toe/options"
-	"sync"
-)
+import "sync"
 
+type StubMyInterfaceOptions struct {
+	WithLocking bool
+}
 type StubMyInterfaceCalculateCall struct {
 	X int
 	Y int
@@ -36,7 +36,7 @@ type StubMyInterface struct {
 	SetValueCalls    []StubMyInterfaceSetValueCall
 }
 
-func NewStubMyInterface(opts options.StubOptions) *StubMyInterface {
+func NewStubMyInterface(opts StubMyInterfaceOptions) *StubMyInterface {
 	return &StubMyInterface{isLocked: opts.WithLocking}
 }
 func (s *StubMyInterface) Calculate(x int, y int) (int, error) {

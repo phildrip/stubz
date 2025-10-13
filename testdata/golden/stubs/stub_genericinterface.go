@@ -2,11 +2,11 @@
 
 package stubs
 
-import (
-	"github.com/phildrip/toe/options"
-	"sync"
-)
+import "sync"
 
+type StubGenericInterfaceOptions struct {
+	WithLocking bool
+}
 type StubGenericInterfaceDoCall[T any] struct {
 	Value T
 }
@@ -30,7 +30,7 @@ type StubGenericInterface[T any] struct {
 	GetReturns StubGenericInterfaceGetReturns[T]
 }
 
-func NewStubGenericInterface[T any](opts options.StubOptions) *StubGenericInterface[T] {
+func NewStubGenericInterface[T any](opts StubGenericInterfaceOptions) *StubGenericInterface[T] {
 	return &StubGenericInterface[T]{isLocked: opts.WithLocking}
 }
 func (s *StubGenericInterface[T]) Do(value T) (T, error) {

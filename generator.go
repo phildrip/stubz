@@ -163,10 +163,9 @@ func GenerateStubCode(ifaceData *InterfaceData, opts *options.StubOptions) (stri
 		Name: ast.NewIdent(ifaceData.PackageName),
 	}
 
-	// Add imports
+	// Add imports - only sync, no longer need to import options package
 	importSpecs := []ast.Spec{
 		&ast.ImportSpec{Path: &ast.BasicLit{Kind: token.STRING, Value: `"sync"`}},
-		&ast.ImportSpec{Path: &ast.BasicLit{Kind: token.STRING, Value: `"github.com/phildrip/toe/options"`}},
 	}
 
 	// Sort and add any additional imports from the interface
@@ -202,6 +201,26 @@ func GenerateStubCode(ifaceData *InterfaceData, opts *options.StubOptions) (stri
 
 	// Create the stub struct definition
 	stubName := "Stub" + ifaceData.Name
+	optionsName := stubName + "Options"
+
+	// Generate the per-stub Options struct (unique to avoid conflicts)
+	optionsStruct := &ast.TypeSpec{
+		Name: ast.NewIdent(optionsName),
+		Type: &ast.StructType{
+			Fields: &ast.FieldList{
+				List: []*ast.Field{
+					{
+						Names: []*ast.Ident{ast.NewIdent("WithLocking")},
+						Type:  ast.NewIdent("bool"),
+					},
+				},
+			},
+		},
+	}
+	file.Decls = append(file.Decls, &ast.GenDecl{
+		Tok:   token.TYPE,
+		Specs: []ast.Spec{optionsStruct},
+	})
 	stubStruct := &ast.TypeSpec{
 		Name: ast.NewIdent(stubName),
 		Type: &ast.StructType{
@@ -441,6 +460,7 @@ func createConstructor(stubName string,
 	imports map[string]string,
 	opts *options.StubOptions) *ast.FuncDecl {
 	constructorName := "New" + stubName
+	optionsName := stubName + "Options"
 
 	// Build receiver type for the constructor
 	var resultType ast.Expr = ast.NewIdent(stubName)
@@ -469,7 +489,7 @@ func createConstructor(stubName string,
 			TypeParams: funcTypeParams, // Add type parameters to the function declaration
 			Params: &ast.FieldList{List: []*ast.Field{{
 				Names: []*ast.Ident{ast.NewIdent("opts")},
-				Type:  &ast.SelectorExpr{X: ast.NewIdent("options"), Sel: ast.NewIdent("StubOptions")},
+				Type:  ast.NewIdent(optionsName), // Use per-stub Options type, by value
 			}}},
 			Results: &ast.FieldList{List: []*ast.Field{{Type: &ast.StarExpr{X: resultType}}}},
 		},

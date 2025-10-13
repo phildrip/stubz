@@ -4,22 +4,20 @@ import (
 	"examples/calculator/stubs"
 	"fmt"
 	"log"
-
-	"github.com/phildrip/toe/options"
 )
 
 func main() {
 	fmt.Println("Demonstrating Calculator Stub:")
 
 	// Instantiate the stub, enabling locking for this instance
-	stub := stubs.NewStubCalculator(options.StubOptions{WithLocking: true})
+	stub := stubs.NewStubCalculator(stubs.StubCalculatorOptions{WithLocking: true})
 
 	// --- Using fixed return values ---
 	fmt.Println("\n--- Testing Subtract with fixed return values ---")
 
 	// Set a single return value for Subtract.
 	// Note: SubtractReturns is now a single struct, not a slice.
-	stub.SubtractReturns = stubs.StubCalculatorSubtractReturns{R0: 100, R1: nil}
+	stub.SubtractReturns = stubs.StubCalculatorSubtractReturns{Int0: 100, Error1: nil}
 	result, err := stub.Subtract(20, 10)
 	if err != nil {
 		log.Fatalf("Error from Subtract: %v", err)
@@ -27,8 +25,8 @@ func main() {
 	fmt.Printf("Subtract(20, 10) returned: %d, %v\n", result, err)
 
 	// If you want to demonstrate an error return, set it again
-	stub.SubtractReturns = stubs.StubCalculatorSubtractReturns{R0: 0,
-		R1: fmt.Errorf("simulated error")}
+	stub.SubtractReturns = stubs.StubCalculatorSubtractReturns{Int0: 0,
+		Error1: fmt.Errorf("simulated error")}
 	result, err = stub.Subtract(5, 3)
 	fmt.Printf("Subtract(5, 3) returned: %d, %v\n", result, err)
 
