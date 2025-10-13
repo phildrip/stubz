@@ -135,25 +135,25 @@ func getBaseTypeName(t types.Type) string {
 }
 
 // parseStmt parses a string into an ast.Stmt. It assumes the string represents a single statement.
-func parseStmt(stmtStr string) ast.Stmt {
+func parseStmt(stmtStr string) (ast.Stmt, error) {
 	fset := token.NewFileSet()
 	// Use a dummy filename and a package clause to make the parser happy.
 	// We only care about the statement body.
 	src := fmt.Sprintf("package p\nfunc _() { %s }", stmtStr)
 	node, err := parser.ParseFile(fset, "", src, 0)
 	if err != nil {
-		panic(fmt.Errorf("failed to parse statement: %w\n%s", err, stmtStr))
+		return nil, fmt.Errorf("failed to parse statement: %w\n%s", err, stmtStr)
 	}
 	// The statement we want is inside the function body. The function body is a BlockStmt.
 	// We expect only one statement inside the function body.
 	if len(node.Decls) == 0 {
-		panic(fmt.Errorf("no declarations found for statement: %s", stmtStr))
+		return nil, fmt.Errorf("no declarations found for statement: %s", stmtStr)
 	}
 	funcDecl, ok := node.Decls[0].(*ast.FuncDecl)
 	if !ok || funcDecl.Body == nil || len(funcDecl.Body.List) == 0 || funcDecl.Body.List[0] == nil {
-		panic(fmt.Errorf("no function body or statements found for statement: %s", stmtStr))
+		return nil, fmt.Errorf("no function body or statements found for statement: %s", stmtStr)
 	}
-	return funcDecl.Body.List[0]
+	return funcDecl.Body.List[0], nil
 }
 
 func GenerateStubCode(ifaceData *InterfaceData, opts *options.StubOptions) (string, error) {
@@ -412,13 +412,16 @@ func GenerateStubCode(ifaceData *InterfaceData, opts *options.StubOptions) (stri
 
 	// Create methods for the stub struct
 	for _, method := range ifaceData.Methods {
-		file.Decls = append(file.Decls,
-			createMethod(stubName,
-				method,
-				ifaceData.TypeParams,
-				ifaceData.PackageName,
-				ifaceData.Imports,
-				opts))
+		methodDecl, err := createMethod(stubName,
+			method,
+			ifaceData.TypeParams,
+			ifaceData.PackageName,
+			ifaceData.Imports,
+			opts)
+		if err != nil {
+			return "", fmt.Errorf("failed to create method %s: %w", method.Name, err)
+		}
+		file.Decls = append(file.Decls, methodDecl)
 	}
 
 	// Generate the code
@@ -518,7 +521,7 @@ func createMethod(stubName string,
 	typeParams []ParamData,
 	currentPackageName string,
 	imports map[string]string,
-	opts *options.StubOptions) *ast.FuncDecl {
+	opts *options.StubOptions) (*ast.FuncDecl, error) {
 	// Method receiver
 	recv := &ast.FieldList{
 		List: []*ast.Field{
@@ -575,12 +578,16 @@ func createMethod(stubName string,
 	var bodyStmts []ast.Stmt
 
 	// Add conditional locking. The sync import will now always be used.
-	bodyStmts = append(bodyStmts, parseStmt(`
+	lockingStmt, err := parseStmt(`
 	if s.isLocked {
 		s.mu.Lock()
 		defer s.mu.Unlock()
 	}
-	`))
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse locking statement: %w", err)
+	}
+	bodyStmts = append(bodyStmts, lockingStmt)
 
 	// Add call recording
 	callStructName := stubName + method.Name + "Call"
@@ -665,7 +672,11 @@ func createMethod(stubName string,
 			funcCallArgsStr,
 			returnValuesStr)
 
-		bodyStmts = append(bodyStmts, parseStmt(returnLogicStr))
+		returnStmt, err := parseStmt(returnLogicStr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse return logic for method %s: %w", method.Name, err)
+		}
+		bodyStmts = append(bodyStmts, returnStmt)
 
 	} else { // No return values in method signature, just add a simple return
 		bodyStmts = append(bodyStmts, &ast.ReturnStmt{})
@@ -683,5 +694,5 @@ func createMethod(stubName string,
 			Results: results,
 		},
 		Body: tbody,
-	}
+	}, nil
 }
