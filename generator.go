@@ -11,6 +11,8 @@ import (
 	"strings"
 
 	"github.com/phildrip/toe/options"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // typeToExpr converts a types.Type to an ast.Expr, handling package imports.
@@ -93,6 +95,14 @@ func typeToExpr(t types.Type, currentPackageName string, imports map[string]stri
 		// Fallback for types not explicitly handled (e.g., complex structs, unexported types)
 		return ast.NewIdent(typ.String())
 	}
+}
+
+// titleCase is a helper to capitalize the first letter of a string,
+// replacing the deprecated strings.Title function.
+var titleCaser = cases.Title(language.English)
+
+func capitalize(s string) string {
+	return titleCaser.String(s)
 }
 
 // getBaseTypeName returns a concise string representation of the base type.
@@ -257,7 +267,7 @@ func GenerateStubCode(ifaceData *InterfaceData, opts *options.StubOptions) (stri
 		for _, p := range method.Params {
 			callStruct.Type.(*ast.StructType).Fields.List = append(
 				callStruct.Type.(*ast.StructType).Fields.List, &ast.Field{
-					Names: []*ast.Ident{ast.NewIdent(strings.Title(p.Name))},
+					Names: []*ast.Ident{ast.NewIdent(capitalize(p.Name))},
 					Type:  typeToExpr(p.Type, ifaceData.PackageName, ifaceData.Imports),
 				})
 		}
@@ -309,10 +319,10 @@ func GenerateStubCode(ifaceData *InterfaceData, opts *options.StubOptions) (stri
 			for i, res := range method.Results {
 				var fieldName string
 				if res.Name != "" {
-					fieldName = strings.Title(res.Name)
+					fieldName = capitalize(res.Name)
 				} else {
 					baseTypeName := getBaseTypeName(res.Type)
-					fieldName = strings.Title(baseTypeName) + fmt.Sprintf("%d", i)
+					fieldName = capitalize(baseTypeName) + fmt.Sprintf("%d", i)
 				}
 				returnsStruct.Type.(*ast.StructType).Fields.List = append(
 					returnsStruct.Type.(*ast.StructType).Fields.List, &ast.Field{
@@ -557,7 +567,7 @@ func createMethod(stubName string,
 	var callElts []ast.Expr
 	for _, p := range method.Params {
 		callElts = append(callElts, &ast.KeyValueExpr{
-			Key:   ast.NewIdent(strings.Title(p.Name)), // Capitalize key for public field
+			Key:   ast.NewIdent(capitalize(p.Name)), // Capitalize key for public field
 			Value: ast.NewIdent(p.Name),
 		})
 	}
@@ -614,10 +624,10 @@ func createMethod(stubName string,
 		for i, r := range method.Results {
 			var fieldName string
 			if r.Name != "" {
-				fieldName = strings.Title(r.Name)
+				fieldName = capitalize(r.Name)
 			} else {
 				baseTypeName := getBaseTypeName(r.Type)
-				fieldName = strings.Title(baseTypeName) + fmt.Sprintf("%d", i)
+				fieldName = capitalize(baseTypeName) + fmt.Sprintf("%d", i)
 			}
 			returnValues = append(returnValues, fmt.Sprintf("s.%s.%s", returnsName, fieldName))
 		}
