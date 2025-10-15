@@ -143,9 +143,11 @@ func FindInterface(inputDir string,
 			if sig.Params() != nil {
 				for j := 0; j < sig.Params().Len(); j++ {
 					param := sig.Params().At(j)
+					isVariadic := sig.Variadic() && j == sig.Params().Len()-1
 					methodData.Params = append(methodData.Params, ParamData{
-						Name: param.Name(),
-						Type: param.Type(), // Store types.Type directly
+						Name:     param.Name(),
+						Type:     param.Type(), // Store types.Type directly
+						Variadic: isVariadic,
 					})
 					collectImports(data, param.Type())
 				}

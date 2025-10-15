@@ -255,9 +255,16 @@ func GenerateStubCode(ifaceData *InterfaceData, opts *options.StubOptions) (stri
 		funcType := &ast.FuncType{}
 		params := &ast.FieldList{}
 		for _, p := range method.Params {
+			fieldType := typeToExpr(p.Type, ifaceData.PackageName, ifaceData.Imports)
+			// For variadic parameters, wrap the type in an Ellipsis
+			if p.Variadic {
+				if sliceType, ok := fieldType.(*ast.ArrayType); ok {
+					fieldType = &ast.Ellipsis{Elt: sliceType.Elt}
+				}
+			}
 			params.List = append(params.List, &ast.Field{
 				Names: []*ast.Ident{ast.NewIdent(p.Name)},
-				Type:  typeToExpr(p.Type, ifaceData.PackageName, ifaceData.Imports),
+				Type:  fieldType,
 			})
 		}
 		funcType.Params = params
@@ -570,9 +577,17 @@ func createMethod(stubName string,
 	// Method parameters
 	params := &ast.FieldList{}
 	for _, p := range method.Params {
+		fieldType := typeToExpr(p.Type, currentPackageName, imports)
+		// For variadic parameters, wrap the type in an Ellipsis
+		if p.Variadic {
+			// The type is already a slice type, so we need to get the element type
+			if sliceType, ok := fieldType.(*ast.ArrayType); ok {
+				fieldType = &ast.Ellipsis{Elt: sliceType.Elt}
+			}
+		}
 		params.List = append(params.List, &ast.Field{
 			Names: []*ast.Ident{ast.NewIdent(p.Name)},
-			Type:  typeToExpr(p.Type, currentPackageName, imports),
+			Type:  fieldType,
 		})
 	}
 
@@ -652,7 +667,12 @@ func createMethod(stubName string,
 		// Generate string for MethodNameFunc call args
 		var funcCallArgs []string
 		for _, p := range method.Params {
-			funcCallArgs = append(funcCallArgs, p.Name)
+			argName := p.Name
+			// For variadic parameters, we need to spread the slice with ...
+			if p.Variadic {
+				argName = argName + "..."
+			}
+			funcCallArgs = append(funcCallArgs, argName)
 		}
 		funcCallArgsStr := strings.Join(funcCallArgs, ", ")
 

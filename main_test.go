@@ -58,6 +58,13 @@ func TestGenerateStub(t *testing.T) {
 			GoldenFile:    filepath.Join("testdata", "golden", "stubs", "stub_externalinterface.go"),
 			Flags:         []string{},
 		},
+		{
+			Name:          "variadic_parameters",
+			InputFile:     filepath.Join("testdata", "input", "variadic"),
+			InterfaceName: "VariadicInterface",
+			GoldenFile:    filepath.Join("testdata", "golden", "stubs", "stub_variadicinterface.go"),
+			Flags:         []string{},
+		},
 	}
 
 	for _, tc := range testCases {

@@ -12,6 +12,7 @@ echo "Regenerating golden test files..."
 ./toe --stub-dir customstubs -o testdata/golden/customstubs/stub_myinterface.go testdata/input/simple MyInterface
 ./toe -o testdata/golden/stubs/stub_aliasinterface.go testdata/input/alias AliasInterface
 ./toe -o testdata/golden/stubs/stub_externalinterface.go testdata/input/external ExternalInterface
+./toe -o testdata/golden/stubs/stub_variadicinterface.go testdata/input/variadic VariadicInterface
 
 echo "Regenerating example stubs..."
 ./toe -o examples/calculator/stubs/stub_calculator.go examples/calculator/lib Calculator

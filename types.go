@@ -6,8 +6,9 @@ import (
 
 // ParamData represents a parameter or result in a method signature.
 type ParamData struct {
-	Name string
-	Type types.Type // Store the actual types.Type object
+	Name     string
+	Type     types.Type // Store the actual types.Type object
+	Variadic bool       // True if this is a variadic parameter (...T)
 }
 
 // MethodData represents a method of an interface.
