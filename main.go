@@ -3,9 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"go/format"
-	"go/parser"
-	"go/token"
 	"io"
 	"os"
 	"path/filepath"
@@ -81,25 +78,7 @@ func run(stdout, stderr io.Writer, args []string) int {
 		return 1
 	}
 
-	// Format the generated code
-	fset := token.NewFileSet()
-	node, err := parser.ParseFile(fset, outputFile, []byte(stubCode), parser.ParseComments)
-	if err != nil {
-		fmt.Fprintf(stderr,
-			"Error parsing generated code for formatting (%s): %v\n",
-			outputFile,
-			err)
-		return 1
-	}
-
-	var formattedBuf strings.Builder
-	err = format.Node(&formattedBuf, fset, node)
-	if err != nil {
-		fmt.Fprintf(stderr, "Error formatting generated code (%s): %v\n", outputFile, err)
-		return 1
-	}
-	stubCode = formattedBuf.String()
-
+	// Write the generated code (already formatted by the generator)
 	err = os.WriteFile(outputFile, []byte(stubCode), 0644)
 	if err != nil {
 		fmt.Fprintf(stderr, "Error writing output file: %v\n", err)

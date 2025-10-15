@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"go/ast"
-	"go/format"
 	"go/parser"
+	"go/printer"
 	"go/token"
 	"go/types"
 	"sort"
@@ -20,8 +20,24 @@ func typeToExpr(t types.Type, currentPackageName string, imports map[string]stri
 	switch typ := t.(type) {
 	case *types.Basic:
 		return ast.NewIdent(typ.Name())
+	case *types.Alias:
+		// Handle type aliases
+		// Use the alias name itself, not the underlying type
+		if typ.Obj().Pkg() != nil && typ.Obj().Pkg().Path() != currentPackageName {
+			// Check if we collected an alias for this package
+			pkgName, ok := imports[typ.Obj().Pkg().Path()]
+			if !ok {
+				pkgName = typ.Obj().Pkg().Name() // Fallback to actual package name
+			}
+			return &ast.SelectorExpr{
+				X:   ast.NewIdent(pkgName),
+				Sel: ast.NewIdent(typ.Obj().Name()),
+			}
+		}
+		// Otherwise, it's a type alias in the current package
+		return ast.NewIdent(typ.Obj().Name())
 	case *types.Named:
-		// If the named type belongs to an external package, use a selector expression
+		// For named types, always use the type as it appears in the source
 		if typ.Obj().Pkg() != nil && typ.Obj().Pkg().Path() != currentPackageName {
 			// Check if we collected an alias for this package
 			pkgName, ok := imports[typ.Obj().Pkg().Path()]
@@ -424,10 +440,11 @@ func GenerateStubCode(ifaceData *InterfaceData, opts *options.StubOptions) (stri
 		file.Decls = append(file.Decls, methodDecl)
 	}
 
-	// Generate the code
+	// Generate the code using printer with TabIndent mode
 	var buf strings.Builder
-	if err := format.Node(&buf, fset, file); err != nil {
-		return "", fmt.Errorf("error formatting generated code: %v", err)
+	cfg := printer.Config{Mode: printer.TabIndent | printer.UseSpaces, Tabwidth: 8}
+	if err := cfg.Fprint(&buf, fset, file); err != nil {
+		return "", fmt.Errorf("error printing generated code: %v", err)
 	}
 
 	// Prepend the generated code comment

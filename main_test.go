@@ -44,6 +44,13 @@ func TestGenerateStub(t *testing.T) {
 			GoldenFile:    filepath.Join("testdata", "golden", "customstubs", "stub_myinterface.go"), // Custom stub dir output path
 			Flags:         []string{"--stub-dir", "customstubs"},
 		},
+		{
+			Name:          "alias_types",
+			InputFile:     filepath.Join("testdata", "input", "alias"),
+			InterfaceName: "AliasInterface",
+			GoldenFile:    filepath.Join("testdata", "golden", "stubs", "stub_aliasinterface.go"),
+			Flags:         []string{},
+		},
 	}
 
 	for _, tc := range testCases {
