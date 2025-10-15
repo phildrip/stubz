@@ -51,6 +51,13 @@ func TestGenerateStub(t *testing.T) {
 			GoldenFile:    filepath.Join("testdata", "golden", "stubs", "stub_aliasinterface.go"),
 			Flags:         []string{},
 		},
+		{
+			Name:          "external_alias_types",
+			InputFile:     filepath.Join("testdata", "input", "external"),
+			InterfaceName: "ExternalInterface",
+			GoldenFile:    filepath.Join("testdata", "golden", "stubs", "stub_externalinterface.go"),
+			Flags:         []string{},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -132,16 +139,16 @@ func TestGenerateStub(t *testing.T) {
 func generateDiff(generated, golden []byte) string {
 	goldenLines := strings.Split(string(golden), "\n")
 	generatedLines := strings.Split(string(generated), "\n")
-	
+
 	var result strings.Builder
 	result.WriteString("--- Golden (expected)\n")
 	result.WriteString("+++ Generated (actual)\n\n")
-	
+
 	maxLines := len(goldenLines)
 	if len(generatedLines) > maxLines {
 		maxLines = len(generatedLines)
 	}
-	
+
 	// Show line-by-line comparison
 	for i := 0; i < maxLines; i++ {
 		var goldenLine, generatedLine string
@@ -151,7 +158,7 @@ func generateDiff(generated, golden []byte) string {
 		if i < len(generatedLines) {
 			generatedLine = generatedLines[i]
 		}
-		
+
 		if goldenLine != generatedLine {
 			lineNum := i + 1
 			if i < len(goldenLines) {
@@ -162,6 +169,6 @@ func generateDiff(generated, golden []byte) string {
 			}
 		}
 	}
-	
+
 	return result.String()
 }

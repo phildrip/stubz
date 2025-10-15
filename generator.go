@@ -20,37 +20,30 @@ func typeToExpr(t types.Type, currentPackageName string, imports map[string]stri
 	switch typ := t.(type) {
 	case *types.Basic:
 		return ast.NewIdent(typ.Name())
-	case *types.Alias:
-		// Handle type aliases
-		// Use the alias name itself, not the underlying type
-		if typ.Obj().Pkg() != nil && typ.Obj().Pkg().Path() != currentPackageName {
-			// Check if we collected an alias for this package
-			pkgName, ok := imports[typ.Obj().Pkg().Path()]
-			if !ok {
-				pkgName = typ.Obj().Pkg().Name() // Fallback to actual package name
-			}
-			return &ast.SelectorExpr{
-				X:   ast.NewIdent(pkgName),
-				Sel: ast.NewIdent(typ.Obj().Name()),
-			}
+	case *types.Alias, *types.Named:
+		// Handle both type aliases and named types
+		var obj *types.TypeName
+
+		if alias, ok := typ.(*types.Alias); ok {
+			obj = alias.Obj()
+		} else if named, ok := typ.(*types.Named); ok {
+			obj = named.Obj()
 		}
-		// Otherwise, it's a type alias in the current package
-		return ast.NewIdent(typ.Obj().Name())
-	case *types.Named:
-		// For named types, always use the type as it appears in the source
-		if typ.Obj().Pkg() != nil && typ.Obj().Pkg().Path() != currentPackageName {
+
+		// For both aliases and named types, use the type as it appears in the source
+		if obj.Pkg() != nil && obj.Pkg().Path() != currentPackageName {
 			// Check if we collected an alias for this package
-			pkgName, ok := imports[typ.Obj().Pkg().Path()]
+			pkgName, ok := imports[obj.Pkg().Path()]
 			if !ok {
-				pkgName = typ.Obj().Pkg().Name() // Fallback to actual package name
+				pkgName = obj.Pkg().Name() // Fallback to actual package name
 			}
 			return &ast.SelectorExpr{
 				X:   ast.NewIdent(pkgName),
-				Sel: ast.NewIdent(typ.Obj().Name()),
+				Sel: ast.NewIdent(obj.Name()),
 			}
 		}
 		// Otherwise, it's a type in the current package or a predeclared type
-		return ast.NewIdent(typ.Obj().Name())
+		return ast.NewIdent(obj.Name())
 	case *types.Pointer:
 		return &ast.StarExpr{X: typeToExpr(typ.Elem(), currentPackageName, imports)}
 	case *types.Slice:

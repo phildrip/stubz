@@ -11,12 +11,28 @@ import (
 // collectImports recursively traverses a go.types.Type and collects external package imports.
 func collectImports(data *InterfaceData, t types.Type) {
 	switch typ := t.(type) {
-	case *types.Named:
-		if typ.Obj().Pkg() != nil && typ.Obj().Pkg().Path() != data.PackageName {
-			data.Imports[typ.Obj().Pkg().Path()] = typ.Obj().Pkg().Name()
+	case *types.Alias, *types.Named:
+		// Handle both type aliases and named types
+		var obj *types.TypeName
+		var underlying types.Type
+
+		if alias, ok := typ.(*types.Alias); ok {
+			obj = alias.Obj()
+			// For aliases, we don't traverse the underlying type - we use the alias name itself
+		} else if named, ok := typ.(*types.Named); ok {
+			obj = named.Obj()
+			underlying = named.Underlying()
 		}
-		// Also check underlying type, e.g., for struct fields of named types
-		collectImports(data, typ.Underlying())
+
+		// Collect the import for the package containing this type
+		if obj.Pkg() != nil && obj.Pkg().Path() != data.PackageName {
+			data.Imports[obj.Pkg().Path()] = obj.Pkg().Name()
+		}
+
+		// For named types (not aliases), also check the underlying type
+		if underlying != nil {
+			collectImports(data, underlying)
+		}
 	case *types.Pointer:
 		collectImports(data, typ.Elem())
 	case *types.Slice:
@@ -140,7 +156,7 @@ func FindInterface(inputDir string,
 				for j := 0; j < sig.Results().Len(); j++ {
 					result := sig.Results().At(j)
 					name := result.Name()
-					
+
 					methodData.Results = append(methodData.Results, ResultData{
 						Name: name,
 						Type: result.Type(), // Store types.Type directly
